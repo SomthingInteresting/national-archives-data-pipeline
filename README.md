@@ -1,6 +1,6 @@
 # National Archives Data Pipeline
 
-A Python-based data pipeline for processing and analyzing legislation data from legislation.gov.uk.
+A Python-based data pipeline for processing and analysing legislation data from legislation.gov.uk.
 
 ## Overview
 
@@ -9,8 +9,8 @@ This project provides tools for:
 - Fetching legislation data via the legislation.gov.uk API
 - Parsing Atom feeds and XML documents
 - Validating XML against official schemas
-- Extracting and analyzing metadata
-- Generating reports and visualizations
+- Extracting and analysing metadata
+- Generating reports and visualisations
 
 ## Setup
 
@@ -25,13 +25,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ```bash
 pip install -r requirements.txt
-```
-
-3. Set up environment variables:
-   Create a `.env` file with:
-
-```
-LEGISLATION_API_KEY=your_api_key_here
 ```
 
 ## Project Structure

@@ -52,8 +52,10 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         content.append(Spacer(1, 12))
         
         basic_info = [
-            ['Year:', str(metadata['year'])],
-            ['Document URI:', metadata['document_uri']],
+            ['Year:', str(metadata.get('year', 'Unknown'))],
+            ['Legislation Type:', str(metadata.get('legislation_type', 'Unknown'))],
+            ['Number:', str(metadata.get('number', 'Unknown'))],
+            ['Document URI:', Paragraph(metadata.get('document_uri', ''), normal_style)],
             ['Generated:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ]
         
@@ -61,9 +63,10 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         basic_table.setStyle(TableStyle([
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-            ('PADDING', (0, 0), (-1, -1), 6),
+            ('PADDING', (0, 0), (-1, -1), 4),
             ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-            ('ALIGN', (1, 0), (1, -1), 'LEFT')
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP')
         ]))
         content.append(basic_table)
         content.append(Spacer(1, 24))
@@ -74,20 +77,25 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         
         sections_df = pd.DataFrame(metadata['sections'])
         if not sections_df.empty:
-            sections_data = [['ID', 'Title', 'Content']]
+            sections_data = [['Number', 'Title', 'Content']]
             for _, row in sections_df.iterrows():
+                # Truncate content more aggressively and wrap in Paragraph
+                content_text = row['content'][:150] + '...' if len(row['content']) > 150 else row['content']
+                title_text = row['title'][:80] + '...' if len(row['title']) > 80 else row['title']
+                
                 sections_data.append([
-                    row['id'],
-                    row['title'],
-                    row['content'][:100] + '...' if len(row['content']) > 100 else row['content']
+                    Paragraph(str(row.get('number', row['id'])), normal_style),
+                    Paragraph(title_text, normal_style),
+                    Paragraph(content_text, normal_style)
                 ])
             
-            sections_table = Table(sections_data, colWidths=[1*inch, 2*inch, 3*inch])
+            sections_table = Table(sections_data, colWidths=[0.8*inch, 2.2*inch, 3*inch])
             sections_table.setStyle(TableStyle([
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('PADDING', (0, 0), (-1, -1), 6),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT')
+                ('PADDING', (0, 0), (-1, -1), 4),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')
             ]))
             content.append(sections_table)
         else:
@@ -101,21 +109,25 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         
         amendments_df = pd.DataFrame(metadata['amendments'])
         if not amendments_df.empty:
-            amendments_data = [['ID', 'Type', 'Date', 'Description']]
+            amendments_data = [['Type', 'Description', 'Affecting URI']]
             for _, row in amendments_df.iterrows():
+                # Truncate and wrap long descriptions
+                desc_text = row['description'][:120] + '...' if len(row['description']) > 120 else row['description']
+                uri_text = row['affecting_uri'][-40:] if len(row['affecting_uri']) > 40 else row['affecting_uri']
+                
                 amendments_data.append([
-                    row['id'],
-                    row['type'],
-                    row['date'],
-                    row['description'][:100] + '...' if len(row['description']) > 100 else row['description']
+                    Paragraph(str(row['type']), normal_style),
+                    Paragraph(desc_text, normal_style),
+                    Paragraph(uri_text, normal_style)
                 ])
             
-            amendments_table = Table(amendments_data, colWidths=[1*inch, 1*inch, 1*inch, 3*inch])
+            amendments_table = Table(amendments_data, colWidths=[1.5*inch, 3*inch, 1.5*inch])
             amendments_table.setStyle(TableStyle([
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('PADDING', (0, 0), (-1, -1), 6),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT')
+                ('PADDING', (0, 0), (-1, -1), 4),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')
             ]))
             content.append(amendments_table)
         else:
