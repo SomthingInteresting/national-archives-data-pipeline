@@ -24,11 +24,12 @@ This project is designed for **educational, technical, and demonstrative purpose
 
 ## 🛠️ Technical Achievements
 
-### XML Namespace Resolution
+### XML Namespace Resolution & CLML Integration
 
-- Solved complex XML namespace issues with legislation.gov.uk data
+- Integrated official Crown Legislation Markup Language (CLML) schemas
+- Solved complex XML namespace issues using government standards instead of guesswork
 - Implemented proper namespace mapping for leg (legislation), dc (Dublin Core), and xsi schemas
-- Built robust XML parsing that handles real-world API responses
+- Built schema-driven validation against official UK government XML standards
 
 ### Section Title Extraction
 
@@ -62,6 +63,12 @@ python test_pipeline.py
 
 ```bash
 python generate_report.py
+```
+
+4. **Test CLML Schema Validation**:
+
+```bash
+python validate_with_schema.py
 ```
 
 ## 📊 Usage Examples
@@ -104,10 +111,11 @@ national-archives-data-pipeline/
 │   ├── metadata_extractor.py # Metadata extraction engine
 │   └── reporting.py          # PDF report generator
 ├── data/
-│   ├── raw/schemas/          # Official XML schemas
+│   ├── raw/schemas/          # Official CLML schemas and documentation
 │   └── processed/            # Generated reports
 ├── test_pipeline.py          # Pipeline testing script
 ├── generate_report.py        # Report generation script
+├── validate_with_schema.py   # CLML schema validation demo
 ├── requirements.txt
 └── README.md
 ```

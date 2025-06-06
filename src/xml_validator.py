@@ -10,15 +10,23 @@ logger = logging.getLogger(__name__)
 
 class XMLValidator:
     """
-    Validates XML against legislation.gov.uk schemas.
+    Validates XML against CLML (Crown Legislation Markup Language) schemas.
+    Uses official UK government schemas for proper validation.
     """
     
-    SCHEMA_BASE_URL = 'https://www.legislation.gov.uk/schemas'
+    SCHEMA_BASE_URL = 'https://www.legislation.gov.uk/schema'
     SCHEMA_CACHE_DIR = Path('data/raw/schemas')
     
     def __init__(self):
         self.schema_cache = {}
         self.SCHEMA_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Define core CLML schemas we use
+        self.core_schemas = {
+            'legislation': 'legislation.xsd',
+            'core': 'schemaLegislationCore.xsd', 
+            'metadata': 'schemaLegislationMetadata.xsd'
+        }
     
     def _download_schema(self, schema_name: str) -> str:
         """
@@ -81,6 +89,100 @@ class XMLValidator:
             logger.error(f'Validation failed: {str(e)}')
             raise
     
+    def validate_legislation_xml(self, xml_content: str) -> List[str]:
+        """
+        Validate legislation XML against CLML schema.
+        
+        Args:
+            xml_content: XML content to validate
+            
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        return self.validate_xml(xml_content, self.core_schemas['legislation'])
+    
+    def validate_against_clml(self, xml_content: str, check_metadata: bool = True) -> Dict[str, Any]:
+        """
+        Comprehensive CLML validation with detailed results.
+        
+        Args:
+            xml_content: XML content to validate
+            check_metadata: Whether to also validate metadata structure
+            
+        Returns:
+            Dict with validation results
+        """
+        results = {
+            'is_valid': True,
+            'errors': [],
+            'warnings': [],
+            'schema_version': None,
+            'namespaces': {}
+        }
+        
+        try:
+            # Parse XML to check structure
+            root = etree.fromstring(xml_content.encode('utf-8'))
+            
+            # Extract namespaces
+            results['namespaces'] = root.nsmap
+            
+            # Check for expected CLML namespaces
+            expected_namespaces = {
+                'leg': 'http://www.legislation.gov.uk/namespaces/legislation',
+                'ukm': 'http://www.legislation.gov.uk/namespaces/metadata'
+            }
+            
+            for prefix, uri in expected_namespaces.items():
+                if uri not in root.nsmap.values():
+                    results['warnings'].append(f'Expected namespace {prefix}:{uri} not found')
+            
+            # Validate against main legislation schema
+            schema_errors = self.validate_legislation_xml(xml_content)
+            if schema_errors:
+                results['is_valid'] = False
+                results['errors'].extend(schema_errors)
+            
+            # Additional metadata validation if requested
+            if check_metadata and results['is_valid']:
+                metadata_errors = self._validate_metadata_structure(root)
+                results['warnings'].extend(metadata_errors)
+                
+        except Exception as e:
+            results['is_valid'] = False
+            results['errors'].append(f'Validation failed: {str(e)}')
+        
+        return results
+    
+    def _validate_metadata_structure(self, root) -> List[str]:
+        """
+        Validate metadata structure against CLML expectations.
+        
+        Args:
+            root: Parsed XML root element
+            
+        Returns:
+            List of validation warnings
+        """
+        warnings = []
+        
+        # Check for common metadata elements
+        metadata_elements = [
+            'DocumentMainType',
+            'DocumentStatus', 
+            'DocumentCategory',
+            'Year',
+            'Number'
+        ]
+        
+        ukm_ns = '{http://www.legislation.gov.uk/namespaces/metadata}'
+        
+        for element_name in metadata_elements:
+            if root.find(f'.//{ukm_ns}{element_name}') is None:
+                warnings.append(f'Metadata element {element_name} not found')
+        
+        return warnings
+    
     def get_schema_for_legislation(self, legislation_id: str) -> str:
         """
         Determine appropriate schema for legislation type.
@@ -91,19 +193,5 @@ class XMLValidator:
         Returns:
             Name of appropriate schema file
         """
-        # Extract legislation type from ID
-        legislation_type = legislation_id.split('/')[0]
-        
-        # Map legislation types to schemas
-        schema_map = {
-            'ukpga': 'ukpga.xsd',
-            'uksi': 'uksi.xsd',
-            'nisi': 'nisi.xsd',
-            'nia': 'nia.xsd',
-            'asp': 'asp.xsd',
-            'anaw': 'anaw.xsd',
-            'mwa': 'mwa.xsd',
-            'ukcm': 'ukcm.xsd'
-        }
-        
-        return schema_map.get(legislation_type, 'legislation.xsd') 
+        # For CLML, we use the main legislation schema for all types
+        return self.core_schemas['legislation'] 
