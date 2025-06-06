@@ -66,17 +66,20 @@ class LegislationAPIClient:
             logger.error(f'API request failed: {str(e)}')
             raise
     
-    def get_atom_feed(self, query: Optional[str] = None) -> str:
+    def get_atom_feed(self, query: Optional[str] = None, legislation_type: str = 'ukpga') -> str:
         """
         Fetch Atom feed from legislation.gov.uk.
         
         Args:
             query: Optional search query
+            legislation_type: Type of legislation (ukpga, uksi, etc.)
             
         Returns:
             Raw Atom feed XML as string
         """
-        endpoint = 'data.feed'
+        # Use a specific legislation type endpoint with data.feed
+        # Example: https://www.legislation.gov.uk/ukpga/data.feed?title=coronavirus
+        endpoint = f'{legislation_type}/data.feed'
         params = {'title': query} if query else None
         
         response = self._make_request(endpoint, params)

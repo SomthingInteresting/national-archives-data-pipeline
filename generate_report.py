@@ -7,7 +7,7 @@ import sys
 sys.path.append('src')
 
 from api_client import LegislationAPIClient
-from metadata_extractor import LegislationMetadataExtractor
+from metadata_extractor import MetadataExtractor
 from reporting import generate_pdf_report
 
 def create_report(legislation_id, output_filename=None):
@@ -33,7 +33,7 @@ def create_report(legislation_id, output_filename=None):
         
         # 2. Extract metadata
         print("Extracting metadata...")
-        extractor = LegislationMetadataExtractor()
+        extractor = MetadataExtractor()
         metadata = extractor.extract_metadata(xml_content)
         
         # 3. Generate PDF report
@@ -50,8 +50,8 @@ def create_report(legislation_id, output_filename=None):
 if __name__ == '__main__':
     # Example usage
     examples = [
-        'ukpga/2020/1',  # Coronavirus Act 2020
-        'ukpga/2023/52', # Data Protection and Digital Information Act 2023
+        'ukpga/2020/7',  # Coronavirus Act 2020
+        'ukpga/2020/1',  # European Union (Withdrawal Agreement) Act 2020
         'uksi/2020/350'  # Example Statutory Instrument
     ]
     

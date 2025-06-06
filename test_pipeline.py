@@ -15,7 +15,7 @@ def test_imports():
         from api_client import LegislationAPIClient
         from atom_parser import parse_atom_feed
         from xml_validator import XMLValidator
-        from metadata_extractor import LegislationMetadataExtractor
+        from metadata_extractor import MetadataExtractor
         from reporting import generate_pdf_report
         print("[PASS] All imports successful")
         return True
@@ -52,8 +52,8 @@ def test_metadata_extractor():
     """Test metadata extractor initialization."""
     print("\nTesting metadata extractor...")
     try:
-        from metadata_extractor import LegislationMetadataExtractor
-        extractor = LegislationMetadataExtractor()
+        from metadata_extractor import MetadataExtractor
+        extractor = MetadataExtractor()
         print("[PASS] Metadata extractor initialized successfully")
         return True
     except Exception as e:

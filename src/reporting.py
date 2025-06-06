@@ -44,7 +44,7 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         content = []
         
         # Title
-        content.append(Paragraph(metadata['title'], title_style))
+        content.append(Paragraph(metadata.get('title', 'Unknown Title'), title_style))
         content.append(Spacer(1, 12))
         
         # Basic Information
@@ -54,7 +54,9 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         basic_info = [
             ['Year:', str(metadata.get('year', 'Unknown'))],
             ['Legislation Type:', str(metadata.get('legislation_type', 'Unknown'))],
-            ['Number:', str(metadata.get('number', 'Unknown'))],
+            ['Number:', str(metadata.get('legislation_number', metadata.get('number', 'Unknown')))],
+            ['Sections Count:', str(metadata.get('sections_count', 'Unknown'))],
+            ['Schedules Count:', str(metadata.get('schedules_count', 'Unknown'))],
             ['Document URI:', Paragraph(metadata.get('document_uri', ''), normal_style)],
             ['Generated:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ]
@@ -71,25 +73,35 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
         content.append(basic_table)
         content.append(Spacer(1, 24))
         
-        # Sections
-        content.append(Paragraph('Sections', heading_style))
+        # Long Title if available
+        if metadata.get('long_title'):
+            content.append(Paragraph('Long Title', heading_style))
+            content.append(Spacer(1, 12))
+            content.append(Paragraph(metadata['long_title'], normal_style))
+            content.append(Spacer(1, 24))
+        
+        # Key Sections
+        content.append(Paragraph('Key Sections', heading_style))
         content.append(Spacer(1, 12))
         
-        sections_df = pd.DataFrame(metadata['sections'])
-        if not sections_df.empty:
-            sections_data = [['Number', 'Title', 'Content']]
-            for _, row in sections_df.iterrows():
-                # Truncate content more aggressively and wrap in Paragraph
-                content_text = row['content'][:150] + '...' if len(row['content']) > 150 else row['content']
-                title_text = row['title'][:80] + '...' if len(row['title']) > 80 else row['title']
+        # Use key_sections instead of sections
+        key_sections = metadata.get('key_sections', [])
+        if key_sections:
+            sections_data = [['Number', 'Title']]
+            for section in key_sections[:20]:  # Limit to first 20 sections
+                section_num = section.get('number', 'N/A')
+                section_title = section.get('title', 'N/A')
+                
+                # Truncate title if too long
+                if len(section_title) > 80:
+                    section_title = section_title[:80] + '...'
                 
                 sections_data.append([
-                    Paragraph(str(row.get('number', row['id'])), normal_style),
-                    Paragraph(title_text, normal_style),
-                    Paragraph(content_text, normal_style)
+                    Paragraph(str(section_num), normal_style),
+                    Paragraph(section_title, normal_style)
                 ])
             
-            sections_table = Table(sections_data, colWidths=[0.8*inch, 2.2*inch, 3*inch])
+            sections_table = Table(sections_data, colWidths=[1*inch, 5*inch])
             sections_table.setStyle(TableStyle([
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
@@ -99,26 +111,38 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
             ]))
             content.append(sections_table)
         else:
-            content.append(Paragraph('No sections found.', normal_style))
+            content.append(Paragraph('No key sections extracted.', normal_style))
         
         content.append(Spacer(1, 24))
         
-        # Amendments
-        content.append(Paragraph('Amendments', heading_style))
-        content.append(Spacer(1, 12))
-        
-        amendments_df = pd.DataFrame(metadata['amendments'])
-        if not amendments_df.empty:
+        # Amendments (if available)
+        amendments = metadata.get('amendments', [])
+        if amendments:
+            content.append(Paragraph('Amendments', heading_style))
+            content.append(Spacer(1, 12))
+            
             amendments_data = [['Type', 'Description', 'Affecting URI']]
-            for _, row in amendments_df.iterrows():
+            for amendment in amendments:
+                # Handle different amendment data structures
+                if isinstance(amendment, dict):
+                    amend_type = amendment.get('type', 'Unknown')
+                    description = amendment.get('description', 'No description')
+                    affecting_uri = amendment.get('affecting_uri', 'No URI')
+                else:
+                    amend_type = str(amendment)
+                    description = 'Amendment record'
+                    affecting_uri = 'N/A'
+                
                 # Truncate and wrap long descriptions
-                desc_text = row['description'][:120] + '...' if len(row['description']) > 120 else row['description']
-                uri_text = row['affecting_uri'][-40:] if len(row['affecting_uri']) > 40 else row['affecting_uri']
+                if len(description) > 120:
+                    description = description[:120] + '...'
+                if len(affecting_uri) > 40:
+                    affecting_uri = '...' + affecting_uri[-40:]
                 
                 amendments_data.append([
-                    Paragraph(str(row['type']), normal_style),
-                    Paragraph(desc_text, normal_style),
-                    Paragraph(uri_text, normal_style)
+                    Paragraph(str(amend_type), normal_style),
+                    Paragraph(description, normal_style),
+                    Paragraph(affecting_uri, normal_style)
                 ])
             
             amendments_table = Table(amendments_data, colWidths=[1.5*inch, 3*inch, 1.5*inch])
@@ -131,10 +155,13 @@ def generate_pdf_report(metadata: Dict[str, Any], output_path: str) -> None:
             ]))
             content.append(amendments_table)
         else:
-            content.append(Paragraph('No amendments found.', normal_style))
+            content.append(Paragraph('Amendments', heading_style))
+            content.append(Spacer(1, 12))
+            content.append(Paragraph('No amendments data available.', normal_style))
         
         # Build PDF
         doc.build(content)
+        logger.info(f'PDF report successfully generated: {output_path}')
         
     except Exception as e:
         logger.error(f'Failed to generate PDF report: {str(e)}')
